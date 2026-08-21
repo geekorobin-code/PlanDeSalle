@@ -558,8 +558,33 @@ const CATALOG = {
     {kind:'worktop',  name:'Paillasse inox', w:120,h:60,  hcm:90,  color:'#c3c8ce', tex:'metal'},
     {kind:'bench',    name:'Banquette',      w:200,h:60,  hcm:45,  color:'#8d5f6e', tex:'fabric', seats:4},
     {kind:'station',  name:'Desserte',       w:90, h:45,  hcm:85,  color:'#a8794c', tex:'wood'},
+    {kind:'chair',    name:'Chaise',         w:45, h:45,  hcm:90,  color:'#8d939c', tex:'plain', seats:1},
+    {kind:'highchair',name:'Chaise enfant',  w:50, h:55,  hcm:95,  color:'#7a9ac0', tex:'plain', seats:1},
+    {kind:'coatrack', name:'Porte-manteau',  w:45, h:45,  hcm:180, color:'#6b5a48', tex:'wood'},
     {kind:'till',     name:'Caisse',         w:60, h:50,  hcm:100, color:'#3f4650', tex:'plain'},
     {kind:'coffee',   name:'Machine café',   w:70, h:55,  hcm:50,  color:'#5b6068', tex:'metal'},
+  ],
+  bar:[
+    {kind:'fridge',      name:'Frigo boissons',  w:70, h:65, hcm:200, color:'#c3c8ce', tex:'metal'},
+    {kind:'winefridge',  name:'Cave à vin',      w:60, h:60, hcm:180, color:'#3f3a36', tex:'plain'},
+    {kind:'beertap',     name:'Tireuse à bière', w:42, h:34, hcm:60,  color:'#c9ced4', tex:'metal'},
+    {kind:'icemaker',    name:'Machine à glaçons',w:60,h:60, hcm:90,  color:'#c3c8ce', tex:'metal'},
+    {kind:'glasswasher', name:'Lave-verres',     w:52, h:55, hcm:85,  color:'#c3c8ce', tex:'metal'},
+    {kind:'sink',        name:'Évier',           w:90, h:60, hcm:90,  color:'#c3c8ce', tex:'metal'},
+    {kind:'glassrack',   name:'Range-verres',    w:100,h:45, hcm:180, color:'#8a9099', tex:'metal'},
+    {kind:'display',     name:'Vitrine réfrigérée',w:120,h:70,hcm:130,color:'#b8d4e2', tex:'plain'},
+    {kind:'oven',        name:'Four',            w:80, h:75, hcm:90,  color:'#8a9099', tex:'metal'},
+    {kind:'stove',       name:'Piano / plancha', w:100,h:70, hcm:90,  color:'#6f757e', tex:'metal'},
+    {kind:'micro',       name:'Micro-ondes',     w:52, h:40, hcm:30,  color:'#9aa0a8', tex:'metal'},
+    {kind:'bin',         name:'Poubelle',        w:45, h:45, hcm:90,  color:'#5b6068', tex:'plain'},
+  ],
+  postes:[
+    {kind:'pizza',   name:'Pizza',    w:55,h:55, hcm:0, color:'#d9822b', tex:'plain'},
+    {kind:'salade',  name:'Salade',   w:55,h:55, hcm:0, color:'#4f8b4a', tex:'plain'},
+    {kind:'dessert', name:'Dessert',  w:55,h:55, hcm:0, color:'#e0508a', tex:'plain'},
+    {kind:'grill',   name:'Chaud',    w:55,h:55, hcm:0, color:'#c0463a', tex:'plain'},
+    {kind:'froid',   name:'Froid',    w:55,h:55, hcm:0, color:'#4d8fb5', tex:'plain'},
+    {kind:'boisson', name:'Boissons', w:55,h:55, hcm:0, color:'#8a5a34', tex:'plain'},
   ],
   personnel:[
     {kind:'person', name:'Serveur',     w:50,h:46, hcm:178, color:'#2f3438', tex:'plain', role:'serveur'},
@@ -817,11 +842,74 @@ function drawObj(g,o,forIcon){
       rrect(-w/2,-h/2,w,h,6); g.fill(); g.stroke();
       g.fillStyle='rgba(0,0,0,.16)'; g.fillRect(-w/2+3,-h/2+3,w-6,h*0.3);
       break;
-    case 'station': case 'till': case 'coffee':
+    case 'station':                                   // desserte : deux plateaux
       rrect(-w/2,-h/2,w,h,5); g.fill(); g.stroke();
-      g.fillStyle='rgba(255,255,255,.22)';
-      rrect(-w*0.3,-h*0.28,w*0.6,h*0.4,3); g.fill();
+      g.strokeStyle='rgba(0,0,0,.28)'; g.lineWidth=2;
+      for(const t of [0.34,0.66]){
+        g.beginPath(); g.moveTo(-w/2+5,-h/2+h*t); g.lineTo(w/2-5,-h/2+h*t); g.stroke();
+      }
       break;
+    case 'till':{                                     // caisse : écran + clavier
+      rrect(-w/2,-h/2,w,h,5); g.fill(); g.stroke();
+      g.fillStyle='rgba(190,225,240,.85)';            // écran, au fond
+      rrect(-w*0.36,-h*0.40,w*0.72,h*0.30,3); g.fill();
+      g.strokeStyle='rgba(0,0,0,.45)'; g.lineWidth=1.6; g.stroke();
+      g.fillStyle='rgba(255,255,255,.55)';            // clavier, devant
+      const cc=4, rr=3, kw=w*0.62/cc, kh=h*0.34/rr;
+      for(let i=0;i<cc;i++) for(let j=0;j<rr;j++)
+        g.fillRect(-w*0.31+i*kw+kw*0.14, h*0.02+j*kh+kh*0.14, kw*0.72, kh*0.72);
+      break;}
+    case 'coffee':{                                   // machine à café : groupes ronds
+      rrect(-w/2,-h/2,w,h,5); g.fill(); g.stroke();
+      g.fillStyle='rgba(255,255,255,.30)';            // tasses posées sur le dessus
+      const nc=Math.max(2,Math.round(w/26));
+      for(let i=0;i<nc;i++){
+        g.beginPath();
+        g.arc(-w/2+w*(i+0.5)/nc, -h*0.30, Math.min(w,h)*0.075, 0, 7);
+        g.fill();
+      }
+      g.strokeStyle='rgba(0,0,0,.45)'; g.lineWidth=2.2;
+      for(const dx of [-0.20, 0.20]){                 // groupes d'extraction
+        g.fillStyle='#2f3438';
+        g.beginPath(); g.arc(dx*w, h*0.18, Math.min(w,h)*0.15, 0, 7); g.fill(); g.stroke();
+        g.fillStyle='rgba(255,255,255,.45)';
+        g.beginPath(); g.arc(dx*w, h*0.18, Math.min(w,h)*0.06, 0, 7); g.fill();
+      }
+      g.strokeStyle='rgba(0,0,0,.5)'; g.lineWidth=Math.max(2,Math.min(w,h)*0.06);
+      g.beginPath();                                   // buse vapeur
+      g.moveTo(w*0.42, h*0.05); g.lineTo(w*0.42, h*0.32); g.stroke();
+      break;}
+    case 'sink':{
+      rrect(-w/2,-h/2,w,h,4); g.fill(); g.stroke();
+      const bacs = w >= h*1.4 ? 2 : 1;
+      g.fillStyle='rgba(0,0,0,.22)';
+      g.strokeStyle='rgba(0,0,0,.40)'; g.lineWidth=2;
+      for(let i=0;i<bacs;i++){
+        const bw=(w-14-(bacs-1)*6)/bacs;
+        const x=-w/2+7+i*(bw+6);
+        rrect(x, -h*0.16, bw, h*0.62, 5); g.fill(); g.stroke();
+        g.fillStyle='rgba(255,255,255,.35)';           // bonde
+        g.beginPath(); g.arc(x+bw/2, h*0.16, Math.min(bw,h)*0.09, 0, 7); g.fill();
+        g.fillStyle='rgba(0,0,0,.22)';
+      }
+      g.fillStyle='rgba(80,90,100,.9)';                // robinet, au fond
+      g.beginPath(); g.arc(0,-h*0.34,Math.min(w,h)*0.09,0,7); g.fill();
+      g.strokeStyle='rgba(60,70,80,.9)'; g.lineWidth=Math.max(2,Math.min(w,h)*0.055);
+      g.beginPath(); g.moveTo(0,-h*0.34); g.lineTo(0,-h*0.14); g.stroke();
+      break;}
+    case 'glassrack':{
+      rrect(-w/2,-h/2,w,h,4); g.fill(); g.stroke();
+      const cols=Math.max(2,Math.round(w/24)), rows=Math.max(1,Math.round(h/24));
+      const r2=Math.min(w/cols, h/rows)*0.34;
+      g.strokeStyle='rgba(0,0,0,.42)'; g.lineWidth=1.8;
+      for(let i=0;i<cols;i++) for(let j=0;j<rows;j++){
+        const x=-w/2+w*(i+0.5)/cols, y=-h/2+h*(j+0.5)/rows;
+        g.fillStyle='rgba(215,235,245,.75)';
+        g.beginPath(); g.arc(x,y,r2,0,7); g.fill(); g.stroke();
+        g.fillStyle='rgba(255,255,255,.6)';
+        g.beginPath(); g.arc(x,y,r2*0.45,0,7); g.fill();
+      }
+      break;}
 
     case 'person':{
       /* Vue de dessus : épaules en ovale, tête au centre, un repère de nez
@@ -881,6 +969,178 @@ function drawObj(g,o,forIcon){
         g.fillStyle='#cfd4d9'; g.strokeStyle='rgba(0,0,0,.4)'; g.lineWidth=2;
         g.beginPath(); g.ellipse(w*0.42, -h*0.30, R*0.20, R*0.16, 0.4, 0, 7);
         g.fill(); g.stroke();
+      }
+      break;}
+    case 'fridge': case 'winefridge':{
+      rrect(-w/2,-h/2,w,h,5); g.fill(); g.stroke();
+      const vitre = o.kind==='fridge';
+      g.fillStyle = vitre ? 'rgba(150,205,230,.55)' : 'rgba(0,0,0,.25)';
+      rrect(-w/2+5,-h/2+5,w-10,h*0.72,4); g.fill();
+      g.strokeStyle='rgba(0,0,0,.35)'; g.lineWidth=1.6;
+      for(let i=1;i<=3;i++){
+        const y=-h/2+5+(h*0.72)*i/4;
+        g.beginPath(); g.moveTo(-w/2+7,y); g.lineTo(w/2-7,y); g.stroke();
+      }
+      if(!vitre){                                  // rangées de bouteilles
+        g.fillStyle='#7d3b3b';
+        for(let i=0;i<3;i++) for(let j=0;j<4;j++){
+          g.beginPath();
+          g.arc(-w/2+13+j*(w-26)/3, -h/2+13+i*(h*0.72-16)/2, Math.min(w,h)*0.045, 0, 7);
+          g.fill();
+        }
+      }
+      g.fillStyle='rgba(0,0,0,.5)';               // poignée
+      g.fillRect(-w*0.06, h/2-h*0.18, w*0.12, h*0.10);
+      break;}
+    case 'beertap':{
+      rrect(-w/2,-h/2,w,h,4); g.fill(); g.stroke();
+      g.fillStyle='rgba(0,0,0,.30)';              // bac d'égouttage
+      rrect(-w/2+3, h/2-h*0.30, w-6, h*0.24, 3); g.fill();
+      const n=3;                                   // becs
+      for(let i=0;i<n;i++){
+        const x=-w/2+w*(i+1)/(n+1);
+        g.fillStyle='#e8b23a'; g.beginPath(); g.arc(x,-h*0.10,Math.min(w,h)*0.13,0,7); g.fill();
+        g.strokeStyle='rgba(0,0,0,.45)'; g.lineWidth=1.8; g.stroke();
+      }
+      break;}
+    case 'icemaker':{
+      rrect(-w/2,-h/2,w,h,5); g.fill(); g.stroke();
+      g.fillStyle='rgba(255,255,255,.55)';
+      rrect(-w/2+6,-h/2+6,w-12,h*0.34,4); g.fill();
+      g.fillStyle='rgba(120,180,215,.85)';        // glaçons
+      const R2=Math.min(w,h)*0.075;
+      for(const [dx,dy] of [[-0.16,0.18],[0.05,0.12],[0.20,0.26],[-0.05,0.32]]){
+        rrect(dx*w-R2, dy*h-R2, R2*2, R2*2, 2); g.fill();
+      }
+      break;}
+    case 'glasswasher':{
+      rrect(-w/2,-h/2,w,h,5); g.fill(); g.stroke();
+      g.strokeStyle='rgba(0,0,0,.4)'; g.lineWidth=2.5;
+      g.beginPath(); g.arc(0,0,Math.min(w,h)*0.30,0,7); g.stroke();
+      g.fillStyle='rgba(255,255,255,.4)';
+      g.beginPath(); g.arc(0,0,Math.min(w,h)*0.16,0,7); g.fill();
+      break;}
+    case 'display':{
+      rrect(-w/2,-h/2,w,h,5); g.fill(); g.stroke();
+      g.fillStyle='rgba(255,255,255,.45)';        // vitrage bombé
+      g.beginPath();
+      g.moveTo(-w/2+4,-h/2+4); g.lineTo(w/2-4,-h/2+4);
+      g.quadraticCurveTo(w/2-4, h*0.12, 0, h*0.16);
+      g.quadraticCurveTo(-w/2+4, h*0.12, -w/2+4, -h/2+4);
+      g.closePath(); g.fill();
+      g.strokeStyle='rgba(0,0,0,.32)'; g.lineWidth=1.6;
+      for(let i=1;i<=2;i++){
+        const y=-h/2+4+(h*0.5)*i/3;
+        g.beginPath(); g.moveTo(-w/2+8,y); g.lineTo(w/2-8,y); g.stroke();
+      }
+      break;}
+    case 'oven':{
+      rrect(-w/2,-h/2,w,h,4); g.fill(); g.stroke();
+      g.fillStyle='rgba(0,0,0,.35)';
+      rrect(-w/2+6,-h/2+h*0.28,w-12,h*0.5,3); g.fill();
+      g.fillStyle='rgba(255,255,255,.5)';         // boutons
+      for(const dx of [-0.22,0.22]){ g.beginPath(); g.arc(dx*w,-h*0.34,Math.min(w,h)*0.07,0,7); g.fill(); }
+      break;}
+    case 'stove':{
+      rrect(-w/2,-h/2,w,h,4); g.fill(); g.stroke();
+      g.strokeStyle='rgba(0,0,0,.45)'; g.lineWidth=2.2;
+      for(const [dx,dy] of [[-0.24,-0.20],[0.24,-0.20],[-0.24,0.20],[0.24,0.20]]){
+        g.beginPath(); g.arc(dx*w,dy*h,Math.min(w,h)*0.15,0,7); g.stroke();
+      }
+      break;}
+    case 'micro':{
+      rrect(-w/2,-h/2,w,h,4); g.fill(); g.stroke();
+      g.fillStyle='rgba(0,0,0,.35)';
+      rrect(-w/2+5,-h/2+5,w*0.62,h-10,3); g.fill();
+      break;}
+    case 'bin':{
+      g.beginPath(); g.arc(0,0,Math.min(w,h)/2,0,7); g.fill(); g.stroke();
+      g.strokeStyle='rgba(255,255,255,.4)'; g.lineWidth=2.5;
+      g.beginPath(); g.arc(0,0,Math.min(w,h)*0.32,0,7); g.stroke();
+      g.beginPath(); g.moveTo(-Math.min(w,h)*0.18,0); g.lineTo(Math.min(w,h)*0.18,0); g.stroke();
+      break;}
+    case 'coatrack':{
+      g.beginPath(); g.arc(0,0,Math.min(w,h)*0.16,0,7); g.fill(); g.stroke();
+      g.strokeStyle=shade(o.color,-0.2); g.lineWidth=Math.min(w,h)*0.07;
+      for(let i=0;i<5;i++){
+        const a=i/5*Math.PI*2;
+        g.beginPath(); g.moveTo(0,0);
+        g.lineTo(Math.cos(a)*Math.min(w,h)*0.44, Math.sin(a)*Math.min(w,h)*0.44);
+        g.stroke();
+      }
+      break;}
+    case 'chair':{
+      rrect(-w/2,-h/2,w,h,7); g.fill(); g.stroke();
+      g.fillStyle=shade(o.color,-0.18);           // dossier
+      rrect(-w/2,-h/2,w,h*0.18,4); g.fill();
+      break;}
+    case 'highchair':{
+      rrect(-w*0.34,-h*0.30,w*0.68,h*0.64,6); g.fill(); g.stroke();
+      g.fillStyle=shade(o.color,-0.20);
+      rrect(-w*0.34,-h*0.30,w*0.68,h*0.16,4); g.fill();
+      g.fillStyle=shade(o.color,0.30);            // tablette
+      rrect(-w/2, h*0.20, w, h*0.22, 5); g.fill();
+      g.strokeStyle='rgba(0,0,0,.4)'; g.lineWidth=2; g.stroke();
+      break;}
+    case 'pizza': case 'salade': case 'dessert':
+    case 'grill': case 'froid': case 'boisson':{
+      const R0=Math.min(w,h)/2;
+      g.fillStyle='rgba(0,0,0,.16)';                 // ombre portée
+      g.beginPath(); g.arc(R0*0.08,R0*0.09,R0,0,7); g.fill();
+      g.fillStyle=o.color;                            // pastille de couleur
+      g.beginPath(); g.arc(0,0,R0,0,7); g.fill();
+      g.strokeStyle='rgba(0,0,0,.35)'; g.lineWidth=2.5; g.stroke();
+      const cl=ink(o.color);
+      g.strokeStyle=cl; g.fillStyle=cl;
+      g.lineWidth=Math.max(1.6,R0*0.10); g.lineCap='round'; g.lineJoin='round';
+      if(o.kind==='pizza'){
+        g.beginPath();                                 // une part, pointe en bas
+        g.moveTo(0, R0*0.62);
+        g.lineTo(-R0*0.52, -R0*0.34);
+        g.arc(0, -R0*0.06, R0*0.62, Math.PI*1.18, Math.PI*1.82);
+        g.closePath();
+        g.stroke();
+        for(const [dx,dy] of [[-0.18,-0.20],[0.18,-0.20],[0,0.06]]){
+          g.beginPath(); g.arc(dx*R0*2, dy*R0*2, R0*0.11, 0, 7); g.fill();
+        }
+      } else if(o.kind==='salade'){
+        g.beginPath();                                // saladier
+        g.arc(0, -R0*0.05, R0*0.58, 0, Math.PI); g.stroke();
+        g.beginPath(); g.moveTo(-R0*0.58,-R0*0.05); g.lineTo(R0*0.58,-R0*0.05); g.stroke();
+        for(const [dx,dy,r] of [[-0.26,-0.30,0.20],[0.02,-0.40,0.22],[0.28,-0.28,0.19]]){
+          g.beginPath(); g.arc(dx*R0*2, dy*R0*2, R0*r, 0, 7); g.fill();
+        }
+      } else if(o.kind==='dessert'){
+        g.beginPath(); g.arc(0,R0*0.12,R0*0.62,Math.PI,0); g.stroke();
+        g.beginPath();                                // part de gâteau
+        g.moveTo(-R0*0.38,R0*0.12); g.lineTo(0,-R0*0.52); g.lineTo(R0*0.38,R0*0.12);
+        g.closePath(); g.stroke();
+        g.beginPath(); g.arc(0,-R0*0.52,R0*0.13,0,7); g.fill();   // la cerise
+      } else if(o.kind==='grill'){
+        for(const dx of [-0.34,0,0.34]){              // flammes / chaleur
+          g.beginPath();
+          g.moveTo(dx*R0*2, R0*0.52);
+          g.bezierCurveTo(dx*R0*2-R0*0.30, R0*0.10, dx*R0*2+R0*0.28, -R0*0.10,
+                          dx*R0*2, -R0*0.52);
+          g.stroke();
+        }
+      } else if(o.kind==='froid'){
+        for(let i=0;i<3;i++){                          // flocon
+          const a=i*Math.PI/3;
+          g.beginPath();
+          g.moveTo(-Math.cos(a)*R0*0.55, -Math.sin(a)*R0*0.55);
+          g.lineTo( Math.cos(a)*R0*0.55,  Math.sin(a)*R0*0.55); g.stroke();
+        }
+        g.beginPath(); g.arc(0,0,R0*0.13,0,7); g.fill();
+      } else {                                         // boissons : un verre
+        g.beginPath();
+        g.moveTo(-R0*0.34,-R0*0.50); g.lineTo(R0*0.34,-R0*0.50);
+        g.lineTo(R0*0.18,R0*0.30); g.lineTo(-R0*0.18,R0*0.30); g.closePath(); g.stroke();
+        g.beginPath(); g.moveTo(0,R0*0.30); g.lineTo(0,R0*0.52); g.stroke();
+        g.beginPath(); g.moveTo(-R0*0.26,R0*0.52); g.lineTo(R0*0.26,R0*0.52); g.stroke();
+        g.beginPath();
+        g.moveTo(-R0*0.28,-R0*0.20); g.lineTo(R0*0.28,-R0*0.20);
+        g.lineTo(R0*0.20,R0*0.24); g.lineTo(-R0*0.20,R0*0.24); g.closePath(); g.fill();
       }
       break;}
     case 'tree':{
@@ -954,30 +1214,96 @@ function drawObj(g,o,forIcon){
 
   if(flipped) g.restore();
 
-  // étiquette
-  if(!forIcon && o.label){
-    const isTable = o.cat==='tables';
-    const fs = o.labelSize ||
-      (isTable ? clamp(Math.min(w,h)*0.42, 22, 60) : clamp(Math.min(w,h)*0.35, 16, 34));
-    // par défaut l'étiquette reste horizontale pour rester lisible ;
-    // labelRot = suivre l'inclinaison de l'élément
-    if(!o.labelRot) g.rotate(-deg(o.rot||0));
-    else { const a=(((o.rot||0)%360)+360)%360; if(a>90 && a<270) g.rotate(Math.PI); }
-    g.font = '700 '+fs+'px -apple-system,Segoe UI,Roboto,sans-serif';
-    g.textAlign='center'; g.textBaseline='middle';
-    if(isTable){
-      const tw = g.measureText(o.label).width;
-      g.fillStyle='rgba(255,255,255,.90)';
-      g.beginPath();
-      const pw=Math.max(tw+fs*0.55, fs*1.25), ph=fs*1.18;
-      if(g.roundRect) g.roundRect(-pw/2,-ph/2,pw,ph,ph/2); else g.rect(-pw/2,-ph/2,pw,ph);
-      g.fill();
-      g.strokeStyle='rgba(0,0,0,.30)'; g.lineWidth=2; g.stroke();
-      g.fillStyle='#1e2126';
-    } else {
-      g.fillStyle=ink(o.color); g.globalAlpha=.85;
-    }
-    g.fillText(o.label,0,0); g.globalAlpha=1;
+  g.restore();
+}
+
+/* Mise en page de l'étiquette : on découpe le texte en lignes et on réduit
+   le corps jusqu'à ce que l'ensemble tienne dans l'élément. La taille réglée
+   à la main sert alors de maximum, jamais de débordement. */
+const FONTLBL='-apple-system,Segoe UI,Roboto,sans-serif';
+/* Un repère de poste porte son texte SOUS la pastille, pour ne pas cacher
+   le pictogramme. Ailleurs, le texte est centré dans l'élément. */
+function labelDessous(o){
+  return o.labelPos ? o.labelPos==='dessous' : o.cat==='poste';
+}
+function labelBudget(o){
+  if(labelDessous(o)) return [Math.max(o.w*2.4, 140), Math.max(o.h*0.9, 60)];
+  const a=(((o.rot||0)%360)+360)%360;
+  if(o.labelRot || a===0 || a===180) return [o.w, o.h];
+  if(a===90 || a===270) return [o.h, o.w];
+  return [Math.min(o.w,o.h), Math.min(o.w,o.h)];   // en biais : le carré inscrit
+}
+function couperEnLignes(g, mots, larg){
+  const lignes=[]; let cur='';
+  for(const m of mots){
+    const essai = cur ? cur+' '+m : m;
+    if(cur && g.measureText(essai).width > larg){ lignes.push(cur); cur=m; }
+    else cur=essai;
+  }
+  if(cur) lignes.push(cur);
+  return lignes;
+}
+function labelLayout(g,o){
+  const isTable = o.cat==='tables';
+  const auto = isTable ? clamp(Math.min(o.w,o.h)*0.42, 22, 60)
+                       : clamp(Math.min(o.w,o.h)*0.35, 16, 34);
+  let fs = o.labelSize || auto;
+  const texte = String(o.label);
+  const mots = texte.split(/\s+/).filter(Boolean);
+  if(o.labelFit===false){
+    g.font='700 '+fs+'px '+FONTLBL;
+    return {lignes:[texte], fs};
+  }
+  let [bw,bh] = labelBudget(o);
+  bw *= isTable ? 0.94 : 0.90;                 // une petite marge intérieure
+  bh *= isTable ? 0.80 : 0.86;
+  for(let k=0;k<60 && fs>5;k++){
+    g.font='700 '+fs+'px '+FONTLBL;
+    const lignes = couperEnLignes(g, mots, bw);
+    const large = Math.max(...lignes.map(l=>g.measureText(l).width));
+    const haut  = lignes.length*fs*1.14;
+    if(large<=bw && haut<=bh) return {lignes, fs};
+    fs *= 0.93;
+  }
+  g.font='700 '+fs+'px '+FONTLBL;
+  return {lignes: couperEnLignes(g, mots, bw), fs};
+}
+
+/* Les étiquettes sont tracées dans une passe séparée, après tout le reste :
+   un élément posé par-dessus un autre ne masque plus son texte. */
+function drawLabel(g,o){
+  if(!o.label || o.kind==='text') return;
+  const isTable = o.cat==='tables';
+  g.save();
+  g.translate(o.x,o.y); g.rotate(deg(o.rot||0));
+  if(!o.labelRot) g.rotate(-deg(o.rot||0));
+  else { const a=(((o.rot||0)%360)+360)%360; if(a>90 && a<270) g.rotate(Math.PI); }
+  const {lignes, fs} = labelLayout(g,o);
+  g.textAlign='center'; g.textBaseline='middle';
+  const interligne = fs*1.14;
+  const dessous = labelDessous(o);
+  const centre = dessous ? (o.h/2 + fs*0.85) : 0;
+  const y0 = centre - (lignes.length-1)*interligne/2;
+  if(isTable){
+    const large = Math.max(...lignes.map(l=>g.measureText(l).width));
+    const pw=Math.max(large+fs*0.55, fs*1.25), ph=lignes.length*interligne+fs*0.20;
+    g.fillStyle='rgba(255,255,255,.90)';
+    g.beginPath();
+    const r=Math.min(ph/2, fs*0.7);
+    if(g.roundRect) g.roundRect(-pw/2,centre-ph/2,pw,ph,r); else g.rect(-pw/2,centre-ph/2,pw,ph);
+    g.fill();
+    g.strokeStyle='rgba(0,0,0,.30)'; g.lineWidth=2; g.stroke();
+    g.fillStyle='#1e2126';
+    lignes.forEach((l,i)=>g.fillText(l,0,y0+i*interligne));
+  } else {
+    /* Sur le mobilier, un liseré autour des lettres : le texte reste lisible
+       même quand un frigo ou une machine est posé juste dessus. */
+    g.lineJoin='round';
+    g.strokeStyle = lum(o.color)>0.58 ? 'rgba(255,255,255,.9)' : 'rgba(0,0,0,.6)';
+    g.lineWidth = Math.max(2, fs*0.22);
+    lignes.forEach((l,i)=>g.strokeText(l,0,y0+i*interligne));
+    g.fillStyle=ink(o.color);
+    lignes.forEach((l,i)=>g.fillText(l,0,y0+i*interligne));
   }
   g.restore();
 }
@@ -1228,6 +1554,7 @@ function drawScene(g, opts){
   drawWalls(g);
   for(const ob of S.objs) if(!floorKinds[ob.kind] && ob.kind!=='text') drawObj(g,ob,false);
   for(const ob of S.objs) if(ob.kind==='text') drawObj(g,ob,false);
+  for(const ob of S.objs) drawLabel(g,ob);      // les étiquettes par-dessus tout
 }
 
 function draw(){
@@ -2861,6 +3188,8 @@ function buildLeft(){
 
   mk('Tables', CATALOG.tables, 'tables');
   mk('Service', CATALOG.service, 'service');
+  mk('Cuisine & bar', CATALOG.bar, 'service');
+  mk('Postes', CATALOG.postes, 'poste');
   mk('Personnel', CATALOG.personnel, 'staff');
   mk('Végétal', CATALOG.vegetal, 'vegetal');
   mk('Structure', CATALOG.structure, 'structure');
@@ -3411,6 +3740,19 @@ function buildRight(){
   }
   if(it.label){
     // sens de lecture de l'étiquette
+    const pos=document.createElement('select');
+    for(const [v,t] of [['centre','Au centre de l’élément'],['dessous','Sous l’élément']]){
+      const op=document.createElement('option'); op.value=v; op.textContent=t;
+      if((it.labelPos || (it.cat==='poste'?'dessous':'centre'))===v) op.selected=true;
+      pos.appendChild(op);
+    }
+    pos.onchange=()=>{ it.labelPos=pos.value; draw(); };
+    s.appendChild(field('Position', pos));
+    const tenir=document.createElement('label'); tenir.className='chk';
+    tenir.innerHTML='<input type="checkbox"'+(it.labelFit===false?'':' checked')+
+                    '> Garder le texte dans l’élément';
+    tenir.querySelector('input').onchange=e2=>{ it.labelFit=e2.target.checked; draw(); };
+    s.appendChild(tenir);
     const suivre=document.createElement('label'); suivre.className='chk';
     suivre.innerHTML='<input type="checkbox"'+(it.labelRot?' checked':'')+
                      '> Écrire dans le sens de l’élément';
@@ -3419,7 +3761,7 @@ function buildRight(){
     const defSize = it.cat==='tables'
       ? Math.round(clamp(Math.min(it.w,it.h)*0.42,22,60))
       : Math.round(clamp(Math.min(it.w,it.h)*0.35,16,34));
-    s.appendChild(sliderNum('Taille texte', it.labelSize||defSize, 8, 250,
+    s.appendChild(sliderNum('Taille texte max', it.labelSize||defSize, 8, 250,
       v=>{ it.labelSize=v; draw(); }));
     const raz=document.createElement('div'); raz.className='btnrow';
     raz.innerHTML='<button>Taille auto</button>';
@@ -4084,7 +4426,7 @@ function showTips(){
    jamais, ni dans la page, ni dans le code source.
    --------------------------------------------------------------------- */
 const FEEDBACK = {
-  token: '368641783088ee29686262abb049c089',                                   // <-- votre identifiant ici
+  token: '368641783088ee29686262abb049c089',    // <-- votre identifiant ici
   service: 'https://formsubmit.co/ajax/',
 };
 
