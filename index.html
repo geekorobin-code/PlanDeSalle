@@ -298,6 +298,7 @@
       <option value="custom">Dessinée à la main…</option>
     </select>
     <button id="applyRoom">Appliquer</button>
+    <button id="rotateRoom" title="Tourner toute la salle et son contenu de 90°">↻ Tourner 90°</button>
   </div>
   <div class="sep"></div>
   <div class="grp">
@@ -1226,11 +1227,24 @@ const FONTLBL='-apple-system,Segoe UI,Roboto,sans-serif';
 function labelDessous(o){
   return o.labelPos ? o.labelPos==='dessous' : o.cat==='poste';
 }
+function labelDirection(o){
+  // Compatibilité avec les anciens plans : labelRot=true signifiait « suivre l’élément ».
+  if(o.labelDir) return o.labelDir;
+  return o.labelRot ? 'follow' : 'h0';
+}
+function labelAbsAngle(o){
+  const d=labelDirection(o);
+  if(d==='follow') return (((o.rot||0)%360)+360)%360;
+  if(d==='h180') return 180;
+  if(d==='v90') return 90;
+  if(d==='v270') return 270;
+  return 0;
+}
 function labelBudget(o){
   if(labelDessous(o)) return [Math.max(o.w*2.4, 140), Math.max(o.h*0.9, 60)];
-  const a=(((o.rot||0)%360)+360)%360;
-  if(o.labelRot || a===0 || a===180) return [o.w, o.h];
-  if(a===90 || a===270) return [o.h, o.w];
+  const rel=(((labelAbsAngle(o)-(o.rot||0))%360)+360)%360;
+  if(rel<1 || Math.abs(rel-180)<1 || Math.abs(rel-360)<1) return [o.w, o.h];
+  if(Math.abs(rel-90)<1 || Math.abs(rel-270)<1) return [o.h, o.w];
   return [Math.min(o.w,o.h), Math.min(o.w,o.h)];   // en biais : le carré inscrit
 }
 function couperEnLignes(g, mots, larg){
@@ -1276,8 +1290,15 @@ function drawLabel(g,o){
   const isTable = o.cat==='tables';
   g.save();
   g.translate(o.x,o.y); g.rotate(deg(o.rot||0));
-  if(!o.labelRot) g.rotate(-deg(o.rot||0));
-  else { const a=(((o.rot||0)%360)+360)%360; if(a>90 && a<270) g.rotate(Math.PI); }
+  const dir=labelDirection(o);
+  if(dir==='follow'){
+    // Suit la table, mais évite d'afficher un numéro tête en bas.
+    const a=(((o.rot||0)%360)+360)%360;
+    if(a>90 && a<270) g.rotate(Math.PI);
+  } else {
+    // Orientation absolue indépendante de la rotation de la table.
+    g.rotate(deg(labelAbsAngle(o)-(o.rot||0)));
+  }
   const {lignes, fs} = labelLayout(g,o);
   g.textAlign='center'; g.textBaseline='middle';
   const interligne = fs*1.14;
@@ -3452,6 +3473,21 @@ function buildRight(){
                    ' · <b style="color:#e8eaed">'+nC+'</b> couvert'+(nC>1?'s':'');
     s.appendChild(info);
 
+    if(nT>0){
+      const dirSel=document.createElement('select');
+      for(const [v,t] of [['h0','Horizontal →'],['h180','Horizontal ← (retourné)'],
+                          ['v90','Vertical ↓'],['v270','Vertical ↑'],['follow','Suivre chaque table']]){
+        const op=document.createElement('option'); op.value=v; op.textContent=t; dirSel.appendChild(op);
+      }
+      dirSel.value='h0';
+      dirSel.onchange=()=>{
+        const v=dirSel.value;
+        for(const x of items){ if(x.cat==='tables'){ x.labelDir=v; x.labelRot=(v==='follow'); } }
+        draw(); showHint('Sens appliqué à '+nT+' table'+(nT>1?'s':''));
+      };
+      s.appendChild(field('Sens numéros', dirSel));
+    }
+
     const h=(t)=>{const x=document.createElement('h3');x.textContent=t;
       x.style.cssText='font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:#9aa1ab;margin:14px 0 8px';
       s.appendChild(x);};
@@ -3753,11 +3789,21 @@ function buildRight(){
                     '> Garder le texte dans l’élément';
     tenir.querySelector('input').onchange=e2=>{ it.labelFit=e2.target.checked; draw(); };
     s.appendChild(tenir);
-    const suivre=document.createElement('label'); suivre.className='chk';
-    suivre.innerHTML='<input type="checkbox"'+(it.labelRot?' checked':'')+
-                     '> Écrire dans le sens de l’élément';
-    suivre.querySelector('input').onchange=e2=>{ it.labelRot=e2.target.checked; draw(); };
-    s.appendChild(suivre);
+    const sens=document.createElement('select');
+    const sensOpts=[
+      ['h0','Horizontal →'],
+      ['h180','Horizontal ← (retourné)'],
+      ['v90','Vertical ↓'],
+      ['v270','Vertical ↑'],
+      ['follow','Suivre la table / l’élément']
+    ];
+    const dirNow=labelDirection(it);
+    for(const [v,t] of sensOpts){
+      const op=document.createElement('option'); op.value=v; op.textContent=t;
+      if(dirNow===v) op.selected=true; sens.appendChild(op);
+    }
+    sens.onchange=()=>{ it.labelDir=sens.value; it.labelRot=(sens.value==='follow'); draw(); };
+    s.appendChild(field(it.cat==='tables'?'Sens du numéro':'Sens du texte', sens));
     const defSize = it.cat==='tables'
       ? Math.round(clamp(Math.min(it.w,it.h)*0.42,22,60))
       : Math.round(clamp(Math.min(it.w,it.h)*0.35,16,34));
@@ -3948,6 +3994,50 @@ function applyRoom(){
   fit(); draw();
 }
 
+/* Tourner le plan entier d’un quart de tour. Contrairement à un simple échange
+   largeur/hauteur, on tourne aussi tables, mobilier, murs, zones et peinture de sol. */
+function rotatePlan90(){
+  snapshot();
+  const oldW=S.room.w, oldH=S.room.h;
+  const rotPt=(x,y)=>({x:oldH-y, y:x});
+
+  for(const o of S.objs){
+    const p=rotPt(o.x,o.y); o.x=Math.round(p.x); o.y=Math.round(p.y);
+    o.rot=(((o.rot||0)+90)%360+360)%360;
+  }
+  for(const w of S.walls){
+    const a=rotPt(w.ax,w.ay), b=rotPt(w.bx,w.by);
+    w.ax=Math.round(a.x); w.ay=Math.round(a.y);
+    w.bx=Math.round(b.x); w.by=Math.round(b.y);
+    // Une rotation conserve le sens de parcours : la courbure garde son signe.
+  }
+  for(const z of S.zones){
+    const x=z.x, y=z.y, zw=z.w, zh=z.h;
+    z.x=Math.round(oldH-(y+zh)); z.y=Math.round(x);
+    z.w=Math.round(zh); z.h=Math.round(zw);
+  }
+
+  // Les cases de revêtement sont carrées : on tourne leur centre puis on
+  // recalcule la cellule de destination dans la nouvelle grille.
+  if(S.floorCells && Object.keys(S.floorCells).length){
+    const cell=S.floorCell||100, nf={};
+    for(const [key,val] of Object.entries(S.floorCells)){
+      const [cx,cy]=key.split(',').map(Number);
+      if(!Number.isFinite(cx)||!Number.isFinite(cy)) continue;
+      const p=rotPt((cx+0.5)*cell,(cy+0.5)*cell);
+      const nx=Math.floor(p.x/cell), ny=Math.floor(p.y/cell);
+      nf[nx+','+ny]=val;
+    }
+    S.floorCells=nf;
+  }
+
+  S.room={...S.room,w:oldH,h:oldW};
+  $('#roomW').value=S.room.w/100;
+  $('#roomH').value=S.room.h/100;
+  fit(); buildRight(); draw();
+  showHint(S.room.h>S.room.w ? 'Plan tourné en portrait' : 'Plan tourné en paysage');
+}
+
 /* Emprise réelle du plan : la salle, plus tout ce qui en dépasse (murs
    cintrés vers l'extérieur, tables posées hors les murs…). Sans cela, une
    baie vitrée bombée se retrouvait coupée au bord de l'export. */
@@ -4017,8 +4107,9 @@ function printPlan(){
   const url=c.toDataURL('image/png');
   const w=window.open('','_blank');
   if(!w){ alert("Autorisez les fenêtres pop-up pour imprimer."); return; }
+  const printOrient = S.room.h>S.room.w ? 'portrait' : 'landscape';
   w.document.write('<!doctype html><title>Plan de salle</title>'+
-    '<style>@page{size:landscape;margin:10mm}body{margin:0;display:flex;align-items:center;justify-content:center}'+
+    '<style>@page{size:'+printOrient+';margin:10mm}body{margin:0;display:flex;align-items:center;justify-content:center}'+
     'img{max-width:100%;max-height:100vh}</style><img src="'+url+'" onload="window.focus();window.print()">');
   w.document.close();
 }
@@ -4526,6 +4617,7 @@ function ideaOpen(){
 
 /* --------------------------------------------------------------- démarrage */
 $('#applyRoom').onclick=applyRoom;
+$('#rotateRoom').onclick=rotatePlan90;
 $('#roomShape').onchange=()=>{
   const v=$('#roomShape').value;
   if(v==='custom'){ setTool('roomdraw'); return; }
