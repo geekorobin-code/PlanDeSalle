@@ -725,7 +725,9 @@ function drawChairs(g,o){
       chair(Math.cos(a)*rx, Math.sin(a)*ry, a+Math.PI/2);
     }
   } else {
-    // répartition sur les 4 côtés, priorité aux longs côtés
+    // Répartition sur les 4 côtés. Le mode manuel permet de verrouiller
+    // les chaises en haut/bas ou gauche/droite même après redimensionnement.
+    const pref=o.chairLayout||'auto';
     const long = o.w>=o.h;
     const perLong = Math.max(1, Math.floor(n/2)), perShort = n-perLong*2;
     const place=(count,side)=>{
@@ -737,8 +739,18 @@ function drawChairs(g,o){
         if(side===3) chair( o.w/2+gap+cd/2, -o.h/2+t*o.h, -Math.PI/2);
       }
     };
-    if(long){ place(perLong,0); place(perLong,1); if(perShort>0){place(Math.ceil(perShort/2),2); place(Math.floor(perShort/2),3);} }
-    else    { place(perLong,2); place(perLong,3); if(perShort>0){place(Math.ceil(perShort/2),0); place(Math.floor(perShort/2),1);} }
+    const horizontal=()=>{
+      const a=Math.ceil(n/2), b=Math.floor(n/2);
+      place(a,0); place(b,1);
+    };
+    const vertical=()=>{
+      const a=Math.ceil(n/2), b=Math.floor(n/2);
+      place(a,2); place(b,3);
+    };
+    if(pref==='topbottom') horizontal();
+    else if(pref==='leftright') vertical();
+    else if(long){ place(perLong,0); place(perLong,1); if(perShort>0){place(Math.ceil(perShort/2),2); place(Math.floor(perShort/2),3);} }
+    else         { place(perLong,2); place(perLong,3); if(perShort>0){place(Math.ceil(perShort/2),0); place(Math.floor(perShort/2),1);} }
   }
   flush();
 }
@@ -3792,6 +3804,16 @@ function buildRight(){
     n.onchange=()=>buildRight();
     s.appendChild(field('Numéro', n));
     s.appendChild(field('Couverts', numInput(it.seats||0, v=>{it.seats=clamp(Math.round(v),0,24);updateCounts();draw();})));
+    if(it.cat==='tables'){
+      const ch=document.createElement('select');
+      for(const [v,t] of [['auto','Auto'],['topbottom','Haut / Bas'],['leftright','Gauche / Droite']]){
+        const op=document.createElement('option'); op.value=v; op.textContent=t;
+        if((it.chairLayout||'auto')===v) op.selected=true;
+        ch.appendChild(op);
+      }
+      ch.onchange=()=>{ it.chairLayout=ch.value; draw(); };
+      s.appendChild(field('Chaises', ch));
+    }
   } else {
     const n=document.createElement('input'); n.type='text'; n.value=it.label||''; n.placeholder='(optionnel)';
     n.oninput=()=>{ it.label=n.value; draw(); };
