@@ -552,6 +552,9 @@ const CATALOG = {
     {kind:'round',  name:'Mange-debout',w:70, h:70,  seats:3, hcm:110,color:'#8e9298', tex:'metal'},
     {kind:'square', name:'Guéridon',    w:60, h:60,  seats:2, hcm:75, color:'#efece6', tex:'marble'},
   ],
+  terrasse:[
+    {kind:'parasolRect', name:'Parasol rect.', w:280, h:160, hcm:240, color:'#c0463a', tex:'plain', opacity:38},
+  ],
   service:[
     {kind:'bar',      name:'Bar',            w:300,h:70,  hcm:110, color:'#8a5a34', tex:'wood'},
     {kind:'counter',  name:'Comptoir',       w:200,h:60,  hcm:95,  color:'#efece6', tex:'marble'},
@@ -1176,6 +1179,26 @@ function drawObj(g,o,forIcon){
       g.fillStyle='#5f9c54';
       for(let x=-w/2+h*0.35;x<w/2;x+=h*0.55){g.beginPath();g.arc(x,0,h*0.32,0,7);g.fill();}
       break;
+    case 'parasolRect':{
+      const op = clamp(o.opacity==null ? 38 : o.opacity, 5, 100) / 100;
+      g.fillStyle='rgba(0,0,0,.10)';
+      g.beginPath();
+      if(g.roundRect) g.roundRect(-w/2+6,-h/2+7,w, h, 12); else g.rect(-w/2+6,-h/2+7,w,h);
+      g.fill();
+      g.save();
+      g.globalAlpha = op;
+      rrect(-w/2,-h/2,w,h,12); g.fill();
+      g.restore();
+      g.strokeStyle='rgba(110,20,20,.65)'; g.lineWidth=3;
+      rrect(-w/2,-h/2,w,h,12); g.stroke();
+      g.strokeStyle='rgba(255,255,255,.32)'; g.lineWidth=2;
+      g.beginPath(); g.moveTo(0,-h/2+10); g.lineTo(0,h/2-10); g.stroke();
+      g.beginPath(); g.moveTo(-w/2+10,0); g.lineTo(w/2-10,0); g.stroke();
+      g.beginPath(); g.moveTo(-w/2+16,-h/2+16); g.lineTo(w/2-16,h/2-16); g.stroke();
+      g.beginPath(); g.moveTo(w/2-16,-h/2+16); g.lineTo(-w/2+16,h/2-16); g.stroke();
+      g.fillStyle='#6b5a48'; g.strokeStyle='rgba(0,0,0,.40)'; g.lineWidth=2;
+      g.beginPath(); g.arc(0,0,Math.max(7, Math.min(w,h)*0.07),0,7); g.fill(); g.stroke();
+      break;}
 
     case 'door':
       g.fillStyle=o.color; g.fillRect(-w/2,-h/2,w,h);
@@ -3208,6 +3231,7 @@ function buildLeft(){
   g0.children[5].onclick=autoFill;
 
   mk('Tables', CATALOG.tables, 'tables');
+  mk('Terrasse', CATALOG.terrasse, 'terrasse');
   mk('Service', CATALOG.service, 'service');
   mk('Cuisine & bar', CATALOG.bar, 'service');
   mk('Postes', CATALOG.postes, 'poste');
@@ -3218,7 +3242,7 @@ function buildLeft(){
 
 /* ------------------------------------------------------- panneau de droite */
 function swatchRow(current, onPick){
-  const cols=['#c08a52','#8a5a34','#efece6','#b6bbc2','#b0563f','#4f8b4a','#3f4650',
+  const cols=['#c08a52','#8a5a34','#efece6','#b6bbc2','#b0563f','#c0463a','#4f8b4a','#3f4650',
               '#d9822b','#3b82f6','#22a06b','#a855f7','#e0508a','#eab308','#ffffff'];
   const d=document.createElement('div'); d.className='swatches';
   for(const c of cols){
